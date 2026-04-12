@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriIntel - History</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="flex justify-between items-center">
+                <h1>AgriIntel</h1>
+                <a href="index.html" class="btn-info" style="margin-left: 0;"><i data-lucide="arrow-left"></i> Bumalik</a>
+            </div>
+            <p>Mga nakaraang grade</p>
+        </header>
+
+        <div class="main-content">
+            <div class="card">
+            <div class="flex gap-1 items-center mb-1">
+                <div style="flex: 1">
+                    <label>Filter by Crop</label>
+                    <select id="filterCrop" style="margin-bottom: 0">
+                        <option value="">Lahat ng Crops</option>
+                        <option value="Mango">Mango</option>
+                        <option value="Banana (Lakatan)">Banana (Lakatan)</option>
+                        <option value="Banana (Saba)">Banana (Saba)</option>
+                        <option value="Tomato">Tomato</option>
+                        <option value="Eggplant">Eggplant</option>
+                        <option value="Ampalaya">Ampalaya</option>
+                    </select>
+                </div>
+                <div class="flex gap-1" style="margin-top: 1.25rem;">
+                    <button id="exportCsvBtn" class="btn btn-accent" style="min-height: auto; padding: 0.5rem 1rem;">
+                        <i data-lucide="file-spreadsheet"></i> CSV
+                    </button>
+                    <button id="exportJsonBtn" class="btn btn-outline" style="min-height: auto; padding: 0.5rem 1rem;">
+                        <i data-lucide="file-json"></i> JSON
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Crop ID</th>
+                            <th>Photo</th>
+                            <th>Grade</th>
+                            <th>Date</th>
+                            <th>Location</th>
+                            <th>Visual Insp.</th>
+                            <th>Nutrients</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTable">
+                        <!-- Rows added by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <a href="index.html" class="btn btn-outline" style="background: var(--card-bg);">
+            <i data-lucide="arrow-left"></i> Bumalik sa Home ⬅️
+        </a>
+    </div> <!-- End main-content -->
+</div> <!-- End container -->
+
+    <script src="js/api.js"></script>
+    <script src="js/history.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

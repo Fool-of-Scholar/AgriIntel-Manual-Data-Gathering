@@ -1,0 +1,7 @@
+{
+  "name": "AgriIntel",
+  "description": "AI-powered crop grading app for Filipino smallholder farmers in Davao, Philippines.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

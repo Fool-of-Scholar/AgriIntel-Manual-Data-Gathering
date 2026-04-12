@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriIntel - AI Crop Grading</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- ... existing header ... -->
+        <header style="background-image: linear-gradient(rgba(44, 76, 59, 0.75), rgba(44, 76, 59, 0.9)), url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1920&auto=format&fit=crop'); background-size: cover; background-position: center;">
+            <h1>🌾 AgriIntel</h1>
+            <p>I-grade ang iyong ani in seconds ⏱️</p>
+            <div id="realtimeClock" style="font-size: 0.9rem; color: #FFFFFF; margin-top: 0.5rem; font-family: 'JetBrains Mono', monospace; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">Loading time...</div>
+        </header>
+
+        <div class="main-content">
+            <!-- Step 1: Photo Upload (Moved to Top) -->
+            <div class="card">
+                <div id="uploadBox" class="upload-box">
+                    <div id="uploadPlaceholder">
+                        <i data-lucide="camera"></i>
+                        <p>I-tap para kumuha ng litrato</p>
+                        <span style="font-size: 0.7rem; color: var(--text-muted);">GPS & Timestamp will be tagged</span>
+                    </div>
+                    <div id="previewContainer" class="preview-container hidden">
+                        <img id="previewImg" class="preview-img" alt="Preview">
+                        <div id="qualityWarning" class="hidden mt-1" style="padding: 0.5rem; border-radius: 0.5rem; background: #FFF3CD; color: #856404; font-size: 0.8rem; border: 1px solid #FFEEBA; text-align: center;">
+                            <!-- Quality warning injected here -->
+                        </div>
+                        <div class="flex gap-1 mt-1">
+                            <button id="reuploadBtn" class="btn btn-secondary" style="min-height: 40px; font-size: 0.8rem;">Change</button>
+                            <button id="cropBtn" class="btn btn-outline" style="min-height: 40px; font-size: 0.8rem;">Crop/Focus</button>
+                        </div>
+                        <div id="uploadStatus" class="hidden mt-1" style="font-size: 0.8rem; color: var(--primary); font-weight: bold;">
+                            Uploading to Secure Vault...
+                        </div>
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
+                </div>
+            </div>
+
+            <!-- Step 2: Digital Passport & Crop Selection -->
+            <div class="card">
+                <div id="batchIdBadge" class="passport-badge">AGR-GENERATING...</div>
+                <div id="locationBadge" class="passport-badge" style="background: #F0F4F1; border-color: #33613C; color: #1B4020;">
+                    <i data-lucide="map-pin" class="w-3 h-3 inline"></i> Locating...
+                </div>
+                
+                <label for="cropType">Anong crop ang iyong i-grade? 🌱</label>
+                <select id="cropType">
+                    <option value="Mango">🥭 Mango (Carabao)</option>
+                    <option value="Banana (Lakatan)">🍌 Banana (Lakatan)</option>
+                    <option value="Banana (Saba)">🍌 Banana (Saba)</option>
+                    <option value="Tomato">🍅 Tomato</option>
+                    <option value="Eggplant">🍆 Eggplant (Talong)</option>
+                    <option value="Ampalaya">🥒 Ampalaya</option>
+                </select>
+            </div>
+
+            <!-- Step 3: Manual Visual Inspection -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 style="margin-bottom: 0;">
+                        <i data-lucide="eye"></i> Visual Inspection 👀
+                        <button id="toggleVisualGuide" class="btn-info" title="How to grade?">
+                            📖 Guide
+                        </button>
+                    </h2>
+                </div>
+
+                <!-- Visual Guide Box -->
+                <div id="visualGuide" class="hidden info-box mb-1">
+                    <div class="flex flex-col gap-1">
+                        <p><strong>Color Logic (1-10):</strong> Scores 8-10 mean optimal ripeness and vibrant color, required for Grade A. Scores 6-7 are acceptable for Grade B. Below 6 indicates under-ripe or severe discoloration.</p>
+                        <p><strong>Size Logic (1-10):</strong> Scores 8-10 mean uniform, standard market size (Grade A). Scores 6-7 are slightly irregular but acceptable (Grade B). Extreme sizes (too small/large) drop to Grade C.</p>
+                        <p><strong>Defects Logic:</strong> '0' means flawless (Grade A). '1-2 minor' allows slight surface blemishes (Grade B). '3+ visible' or 'Severe' (mold, deep cuts) immediately drops to Grade C.</p>
+                        <p><strong>Texture Logic:</strong> 'Smooth & Firm' is required for Grade A. 'Rough/Bumpy' can be Grade B. 'Shriveled/Soft' indicates water loss or rotting, automatically dropping to Grade C.</p>
+                    </div>
+                </div>
+
+                <div class="mb-1">
+                    <label class="tooltip">Color (Ripeness) <span id="colorVal">8</span>/10
+                        <span class="tooltip-text">Score 8-10 for optimal ripeness. Below 6 indicates under-ripe or discoloration.</span>
+                    </label>
+                    <input type="range" id="inspectColor" min="1" max="10" value="8" style="margin-bottom: 0.5rem;">
+                </div>
+                <div class="mb-1">
+                    <label class="tooltip">Size & Shape <span id="sizeVal">8</span>/10
+                        <span class="tooltip-text">Score 8-10 for uniform, standard market size. Extreme sizes drop the grade.</span>
+                    </label>
+                    <input type="range" id="inspectSize" min="1" max="10" value="8" style="margin-bottom: 0.5rem;">
+                </div>
+                <div class="mb-1">
+                    <label class="tooltip">Surface Defects (Count)
+                        <span class="tooltip-text">0 is flawless (Grade A). 1-2 minor blemishes are acceptable for Grade B.</span>
+                    </label>
+                    <select id="inspectDefects">
+                        <option value="0">Walang sira (0)</option>
+                        <option value="1">Minor (1-2)</option>
+                        <option value="3">Visible (3+)</option>
+                        <option value="5">Severe (Bruised/Moldy)</option>
+                    </select>
+                </div>
+                <div class="mb-1">
+                    <label class="tooltip">Texture
+                        <span class="tooltip-text">Smooth & Firm is required for Grade A. Shriveled/Soft indicates rotting.</span>
+                    </label>
+                    <select id="inspectTexture">
+                        <option value="smooth">Smooth & Firm</option>
+                        <option value="rough">Rough/Bumpy</option>
+                        <option value="shriveled">Shriveled/Soft</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Step 4: Nutrient Analysis (Optional) -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 style="margin-bottom: 0; min-width: 0; flex: 1;">
+                        <i data-lucide="flask-conical"></i> Nutrients 🧪
+                        <span class="badge-small" style="background: var(--border); color: var(--text-muted); width: auto; padding: 0 0.5rem; font-weight: normal; margin-left: 0.5rem; margin-top: 73px; margin-right: -38px; margin-bottom: 1px;">Optional</span>
+                        <button id="toggleNutrientGuide" class="btn-info" title="Nutrient Info" style="margin-left: auto;">
+                            📖 Guide
+                        </button>
+                    </h2>
+                </div>
+
+                <!-- Nutrient Guide Box -->
+                <div id="nutrientGuide" class="hidden info-box mb-1">
+                    <div class="flex flex-col gap-1">
+                        <p><i data-lucide="leaf" class="inline w-4 h-4 mr-1"></i> <strong>Nitrogen (N):</strong> Essential for chlorophyll. Low levels lead to stunted growth and pale yellow leaves.</p>
+                        <p><i data-lucide="flower-2" class="inline w-4 h-4 mr-1"></i> <strong>Phosphorus (P):</strong> Drives root development and flowering. Deficiency causes dark green or purple leaf edges.</p>
+                        <p><i data-lucide="zap" class="inline w-4 h-4 mr-1"></i> <strong>Potassium (K):</strong> Regulates water and fruit quality. Low K results in weak stems and "burnt" leaf margins.</p>
+                    </div>
+                </div>
+                
+                <div id="nutrientInputs" class="mt-1">
+                <div class="nutrient-row">
+                    <div class="nutrient-col">
+                        <label>Nitrogen (N)</label>
+                        <input type="number" id="nutrientN" value="" placeholder="0">
+                    </div>
+                    <div class="nutrient-col">
+                        <label>Phosphorus (P)</label>
+                        <input type="number" id="nutrientP" value="" placeholder="0">
+                    </div>
+                    <div class="nutrient-col">
+                        <label>Potassium (K)</label>
+                        <input type="number" id="nutrientK" value="" placeholder="0">
+                    </div>
+                </div>
+                <div id="nutrientAlert" class="hidden mt-1" style="padding: 1rem; border-radius: 0.75rem; background: #FFF3CD; color: #856404; font-size: 0.85rem; border: 1px solid #FFEEBA;">
+                    <!-- Alerts injected here -->
+                </div>
+            </div>
+        </div>
+
+                <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
+            </div>
+        </div>
+
+        <!-- Cropping Modal -->
+        <div id="cropModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; flex-direction: column; padding: 1rem;">
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                <img id="cropImage" style="max-width: 100%; max-height: 100%;">
+            </div>
+            <div class="flex gap-1 mt-1">
+                <button id="cancelCropBtn" class="btn btn-secondary">Cancel</button>
+                <button id="applyCropBtn" class="btn btn-primary">Apply Crop</button>
+            </div>
+        </div>
+
+        <!-- Step 5: Reference Panel -->
+        <div class="card">
+            <h2><i data-lucide="book-open"></i> Grading Standards 📋</h2>
+            <div class="flex flex-col gap-1">
+                <div class="info-box" style="border-left: 5px solid #1B4020; background: #FFFFFF;">
+                    <h4 style="color: #1B4020; margin-bottom: 0.5rem;">⭐ Grade A (Premium)</h4>
+                    <p><strong>Logic:</strong> Perfect color and size. 0 Defects. Smooth Texture.</p>
+                    <p style="font-size: 0.75rem;">Best for export and high-end markets. Maximum shelf life.</p>
+                </div>
+                <div class="info-box" style="border-left: 5px solid #FBC02D; background: #FFFFFF;">
+                    <h4 style="color: #FBC02D; margin-bottom: 0.5rem;">👍 Grade B (Standard)</h4>
+                    <p><strong>Logic:</strong> Good color and size. Max 2 minor defects. Non-shriveled.</p>
+                    <p style="font-size: 0.75rem;">Good for local retail. Minor surface marks allowed.</p>
+                </div>
+                <div class="info-box" style="border-left: 5px solid #C62828; background: #FFFFFF;">
+                    <h4 style="color: #C62828; margin-bottom: 0.5rem;">🏭 Grade C (Processing)</h4>
+                    <p><strong>Logic:</strong> Poor color/size OR 3+ Defects OR Shriveled Texture.</p>
+                    <p style="font-size: 0.75rem;">Best for jams, juices, or immediate processing.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="flex gap-1 mb-1">
+            <button id="gradeBtn" class="btn btn-primary" style="flex: 2" disabled>
+                <i data-lucide="zap"></i> Calculate Grade 🚀
+            </button>
+        </div>
+        <a href="history.html" class="btn btn-outline mb-1" style="background: var(--card-bg);">Tingnan ang History 📜</a>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Sinisuri ng AI ang iyong ani...</p>
+        </div>
+
+        <!-- Step 4: Result Card -->
+        <div id="resultCard" class="card hidden">
+            <div class="result-header">
+                <div id="gradeBadge" class="grade-badge">A</div>
+                <div>
+                    <h2 id="resultTitle" style="margin:0">AI Analysis Result</h2>
+                    <div id="actionTag" class="tag tag-sell">Sell Now</div>
+                </div>
+            </div>
+
+            <div class="confidence-container">
+                <label id="confidenceLabel">Confidence: 0%</label>
+                <div class="progress-bg">
+                    <div id="confidenceBar" class="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <p id="explanation" class="mb-1"></p>
+            
+            <ul id="observations" class="observations"></ul>
+
+            <div class="price-box">
+                <span>Suggested Price</span>
+                <p id="priceText">₱0.00</p>
+            </div>
+
+            <div class="flex gap-1">
+                <button id="confirmBtn" class="btn btn-primary mb-1">Save Record 💾</button>
+                <button id="overrideBtn" class="btn btn-secondary mb-1">Override Grade ✏️</button>
+            </div>
+
+            <!-- Override Panel -->
+            <div id="overridePanel" class="hidden mt-1">
+                <label>Pumili ng tamang grade:</label>
+                <select id="manualGrade">
+                    <option value="A">Grade A</option>
+                    <option value="B">Grade B</option>
+                    <option value="C">Grade C</option>
+                </select>
+                <label>Bakit? (Reason for override)</label>
+                <textarea id="overrideReason" placeholder="Hal: Masyadong maliit para sa Grade A"></textarea>
+            </div>
+        </div>
+
+        <!-- Step 6: Save Form -->
+        <div id="saveForm" class="card hidden">
+            <h2>I-save ang Record</h2>
+            <label>Pangalan ng Grader (Optional)</label>
+            <input type="text" id="graderName" placeholder="Iyong pangalan">
+            
+            <label>Barangay (Optional)</label>
+            <input type="text" id="locationBarangay" placeholder="Hal: Buhangin">
+            
+            <label>Notes (Optional)</label>
+            <textarea id="notes" placeholder="Iba pang detalye..."></textarea>
+
+            <button id="saveBtn" class="btn btn-accent">
+                <i data-lucide="save"></i> I-save ang Grade
+            </button>
+        </div>
+
+        <!-- Success Message -->
+        <div id="successMsg" class="card hidden text-center">
+            <i data-lucide="check-circle" style="color: var(--primary); font-size: 3rem; margin-bottom: 1rem;"></i>
+            <h2>Na-save na!</h2>
+            <p class="mb-1">Ang record ay matagumpay na na-save sa database.</p>
+            <button id="resetBtn" class="btn btn-primary">I-grade ang panibagong crop</button>
+        </div>
+
+        <footer style="text-align: center; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+            <button id="openPrivacyBtn" style="background: none; border: none; color: var(--text-muted); text-decoration: underline; cursor: pointer; font-size: 0.85rem;">Privacy Policy</button>
+        </footer>
+
+        <!-- Privacy Modal -->
+        <div id="privacyModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem;">
+            <div class="card" style="max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto; position: relative;">
+                <h2 style="margin-bottom: 1rem;">Privacy Policy 🛡️</h2>
+                <div style="font-size: 0.9rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.75rem;">
+                    <p>Welcome to AgriIntel. We value your privacy and are committed to protecting your data.</p>
+                    <p><strong>1. Data Collection:</strong> We collect the following data when you use the app:
+                        <ul style="margin-left: 1.5rem; margin-top: 0.25rem;">
+                            <li><strong>Photos:</strong> Images of crops you upload for grading.</li>
+                            <li><strong>Location Data:</strong> GPS coordinates (if permitted) to tag where the crop was graded.</li>
+                            <li><strong>Grading Data:</strong> Visual inspection scores, nutrient inputs, and final grades.</li>
+                        </ul>
+                    </p>
+                    <p><strong>2. Data Usage:</strong> The collected data is used to generate grading reports, maintain your grading history, and improve agricultural analytics.</p>
+                    <p><strong>3. Data Storage:</strong> Records are securely stored in our cloud database (Supabase). Photos are stored in a public bucket for display in your history.</p>
+                </div>
+                <button id="closePrivacyBtn" class="btn btn-primary" style="margin-top: 1.5rem; min-height: 48px;">I Understand</button>
+            </div>
+        </div>
+
+    </div> <!-- End main-content -->
+</div> <!-- End container -->
+
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
