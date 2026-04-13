@@ -1,6 +1,13 @@
+# Build command: keep in sync with package.json ("npm run build").
+# If Netlify Site settings still show "remix vite:build", remove or change it there —
+# dashboard Build command overrides this file (see build logs: commandOrigin: ui).
 [build]
+  command = "npm run build"
   publish = "public"
   functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
 
 [[redirects]]
   from = "/api/*"
