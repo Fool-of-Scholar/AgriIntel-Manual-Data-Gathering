@@ -8,7 +8,6 @@ import multer from 'multer';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenAI } from '@google/genai';
 
 // Load environment variables
 dotenv.config();
@@ -29,8 +28,22 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Gemini Configuration
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+async function getGenAI() {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        const err = new Error('GEMINI_API_KEY is not set');
+        err.code = 'GEMINI_API_KEY_MISSING';
+        throw err;
+    }
+    // Lazy import to avoid Netlify function init crashes when bundling/runtime
+    // cannot resolve @google/genai's Node entrypoint.
+    const mod = await import('@google/genai');
+    const GoogleGenAI = mod.GoogleGenAI;
+    if (!GoogleGenAI) {
+        throw new Error('Failed to load GoogleGenAI from @google/genai');
+    }
+    return new GoogleGenAI({ apiKey });
+}
 
 function withTimeout(promise, ms, label) {
     let timeoutId;
@@ -137,6 +150,7 @@ app.post('/api/grade', async (req, res) => {
         `;
 
         // 3. Call Gemini 2.0 Flash
+        const genAI = await getGenAI();
         const result = await genAI.models.generateContent({
             model: 'gemini-2.0-flash',
             contents: {
@@ -160,6 +174,9 @@ app.post('/api/grade', async (req, res) => {
         }
 
     } catch (error) {
+        if (error?.code === 'GEMINI_API_KEY_MISSING') {
+            return res.status(501).json({ error: 'AI grading is not configured on this deploy (missing GEMINI_API_KEY).' });
+        }
         console.error('Grading Error:', error);
         res.status(500).json({ error: 'Failed to analyze crop' });
     }
