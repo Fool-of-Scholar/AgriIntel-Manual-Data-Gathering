@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f3e8"/>
+      <stop offset="1" stop-color="#e7f5ec"/>
+    </linearGradient>
+    <radialGradient id="fruit" cx="35%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#ffd36a"/>
+      <stop offset="0.55" stop-color="#ffb300"/>
+      <stop offset="1" stop-color="#f57c00"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="600" fill="url(#bg)"/>
+
+  <!-- simple crop photo composition -->
+  <ellipse cx="430" cy="360" rx="210" ry="160" fill="url(#fruit)" stroke="#d36b00" stroke-width="10"/>
+  <ellipse cx="330" cy="380" rx="160" ry="120" fill="rgba(255,255,255,0.12)"/>
+
+  <!-- leaf -->
+  <path d="M310 240 C 260 180, 230 150, 200 140 C 215 210, 245 265, 310 300 C 330 275, 333 260, 310 240 Z"
+        fill="#2e7d32" stroke="#1b5e20" stroke-width="8"/>
+  <path d="M215 175 C 255 210, 280 240, 300 270" fill="none" stroke="#1b5e20" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- label text to help visually confirm uploads -->
+  <text x="40" y="70" font-family="system-ui, Segoe UI, Arial" font-size="42" fill="#1b4020" font-weight="700">
+    AgriIntel Test Photo
+  </text>
+  <text x="40" y="120" font-family="system-ui, Segoe UI, Arial" font-size="26" fill="#33613c">
+    sample-crop.svg (will compress to JPEG)
+  </text>
+</svg>

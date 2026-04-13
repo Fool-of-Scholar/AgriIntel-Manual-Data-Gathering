@@ -1,12 +1,23 @@
 const API = {
-    async uploadPhoto(file, signal) {
+    async uploadPhoto(file, signal, timeoutMs = 20000) {
         const formData = new FormData();
-        formData.append('photo', file);
+        const fileName =
+            (file && typeof file === 'object' && 'name' in file && file.name) ? file.name : 'photo.jpg';
+        formData.append('photo', file, fileName);
+
+        const controller = !signal ? new AbortController() : null;
+        const effectiveSignal = signal || controller.signal;
+        let timeoutId = null;
+        if (timeoutMs && controller) {
+            timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        }
+
         const response = await fetch('/api/upload-photo', {
             method: 'POST',
             body: formData,
-            signal
+            signal: effectiveSignal
         });
+        if (timeoutId) clearTimeout(timeoutId);
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to upload photo');

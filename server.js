@@ -33,6 +33,14 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Gemini Configuration
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+function withTimeout(promise, ms, label) {
+    let timeoutId;
+    const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
 // --- API ROUTES ---
 
 /**
@@ -44,27 +52,24 @@ app.post('/api/upload-photo', upload.single('photo'), async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'No photo uploaded' });
         }
-
-        const fileName = `${Date.now()}-${req.file.originalname}`;
-        
-        // Attempt to create bucket if it doesn't exist (might fail if anon key lacks permissions, but worth a try)
-        try {
-            const { data: buckets } = await supabase.storage.listBuckets();
-            if (buckets && !buckets.find(b => b.name === 'crop-photos')) {
-                console.log("Attempting to create 'crop-photos' bucket...");
-                await supabase.storage.createBucket('crop-photos', { public: true });
-            }
-        } catch (bucketErr) {
-            console.warn("Could not verify/create bucket automatically. Ensure 'crop-photos' exists and is public in your Supabase dashboard.");
+        if (!supabaseUrl || !supabaseAnonKey) {
+            return res.status(500).json({ error: 'Supabase environment variables are missing (SUPABASE_URL / SUPABASE_ANON_KEY)' });
         }
 
+        const fileName = `${Date.now()}-${req.file.originalname}`;
+        console.log(`[upload] start name=${fileName} bytes=${req.file.size} type=${req.file.mimetype}`);
+
         // Upload to 'crop-photos' bucket
-        const { data, error } = await supabase.storage
-            .from('crop-photos')
-            .upload(fileName, req.file.buffer, {
-                contentType: req.file.mimetype,
-                upsert: true
-            });
+        const { data, error } = await withTimeout(
+            supabase.storage
+                .from('crop-photos')
+                .upload(fileName, req.file.buffer, {
+                    contentType: req.file.mimetype,
+                    upsert: true
+                }),
+            15000,
+            'Supabase upload'
+        );
 
         if (error) {
             if (error.message.includes('Bucket not found')) {
@@ -81,6 +86,7 @@ app.post('/api/upload-photo', upload.single('photo'), async (req, res) => {
             .from('crop-photos')
             .getPublicUrl(fileName);
 
+        console.log(`[upload] done url=${publicUrl}`);
         res.json({ photo_url: publicUrl });
     } catch (error) {
         console.error('Upload Error:', error);

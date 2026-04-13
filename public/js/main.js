@@ -167,6 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadAbortController.abort();
         }
         uploadAbortController = new AbortController();
+        const uploadTimeoutId = setTimeout(() => {
+            try { uploadAbortController.abort(); } catch (_) {}
+        }, 20000);
 
         currentImageUrl = null; // Reset
         uploadStatus.textContent = "Processing & compressing photo...";
@@ -177,7 +180,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const img = new Image();
+            const decodeFailsafeId = setTimeout(() => {
+                uploadStatus.textContent = "Could not read image. Using local copy.";
+                uploadBox.classList.remove('processing');
+                clearTimeout(uploadTimeoutId);
+                backgroundUploadPromise = Promise.resolve(null);
+            }, 5000);
             img.onload = async () => {
+                clearTimeout(decodeFailsafeId);
                 const canvas = document.createElement('canvas');
                 let width = img.width;
                 let height = img.height;
@@ -200,8 +210,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                
+
+                let finished = false;
+                const processingFailsafeId = setTimeout(() => {
+                    if (finished) return;
+                    finished = true;
+                    uploadStatus.textContent = "Image processing timed out. Using local copy.";
+                    uploadBox.classList.remove('processing');
+                    clearTimeout(uploadTimeoutId);
+                    backgroundUploadPromise = Promise.resolve(null);
+                }, 5000);
+
                 canvas.toBlob(async (blob) => {
+                    if (finished) return;
+                    finished = true;
+                    clearTimeout(processingFailsafeId);
+
+                    if (!blob) {
+                        uploadStatus.textContent = "Could not compress image. Using local copy.";
+                        uploadBox.classList.remove('processing');
+                        clearTimeout(uploadTimeoutId);
+                        backgroundUploadPromise = Promise.resolve(null);
+                        return;
+                    }
                     uploadStatus.textContent = "Uploading to cloud...";
                     backgroundUploadPromise = API.uploadPhoto(blob, uploadAbortController.signal)
                         .then(res => {
@@ -209,16 +240,29 @@ document.addEventListener('DOMContentLoaded', () => {
                             uploadStatus.textContent = "Photo ready!";
                             setTimeout(() => uploadStatus.classList.add('hidden'), 2000);
                             uploadBox.classList.remove('processing');
+                            clearTimeout(uploadTimeoutId);
                             return res.photo_url;
                         })
                         .catch(err => {
-                            if (err.name === 'AbortError') return null;
+                            clearTimeout(uploadTimeoutId);
+                            if (err.name === 'AbortError') {
+                                uploadStatus.textContent = "Upload timed out. Using local copy.";
+                                uploadBox.classList.remove('processing');
+                                return null;
+                            }
                             console.error("Background upload failed:", err);
                             uploadStatus.textContent = "Upload failed. Using local copy.";
                             uploadBox.classList.remove('processing');
                             return null;
                         });
                 }, 'image/jpeg', 0.7); // 70% quality
+            };
+            img.onerror = () => {
+                clearTimeout(decodeFailsafeId);
+                uploadStatus.textContent = "Could not decode image. Using local copy.";
+                uploadBox.classList.remove('processing');
+                clearTimeout(uploadTimeoutId);
+                backgroundUploadPromise = Promise.resolve(null);
             };
             img.src = e.target.result;
         };

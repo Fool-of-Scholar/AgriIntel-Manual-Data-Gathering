@@ -1,0 +1,16 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "uploadFile": "C:\\does-not-exist.png",
+  "timings": {
+    "upload_ms": 381,
+    "save_ms": 356
+  },
+  "screenshots": {
+    "initial": "C:\\Users\\USER\\OneDrive\\Desktop\\Documents\\Ongoing Personal App\\Personal App\\AgriIntel-Manual-Data-Gathering\\artifacts\\e2e\\01-initial.png",
+    "preview": "C:\\Users\\USER\\OneDrive\\Desktop\\Documents\\Ongoing Personal App\\Personal App\\AgriIntel-Manual-Data-Gathering\\artifacts\\e2e\\02-preview-after-select.png",
+    "upload_done": "C:\\Users\\USER\\OneDrive\\Desktop\\Documents\\Ongoing Personal App\\Personal App\\AgriIntel-Manual-Data-Gathering\\artifacts\\e2e\\03-upload-done.png",
+    "result": "C:\\Users\\USER\\OneDrive\\Desktop\\Documents\\Ongoing Personal App\\Personal App\\AgriIntel-Manual-Data-Gathering\\artifacts\\e2e\\04-result-card.png",
+    "success": "C:\\Users\\USER\\OneDrive\\Desktop\\Documents\\Ongoing Personal App\\Personal App\\AgriIntel-Manual-Data-Gathering\\artifacts\\e2e\\05-success.png",
+    "history": "C:\\Users\\USER\\OneDrive\\Desktop\\Documents\\Ongoing Personal App\\Personal App\\AgriIntel-Manual-Data-Gathering\\artifacts\\e2e\\06-history-has-new-row.png"
+  }
+}
