@@ -5,6 +5,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const historyTable = document.getElementById('historyTable');
     const filterCrop = document.getElementById('filterCrop');
+    const refreshBtn = document.getElementById('refreshBtn');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
     const exportJsonBtn = document.getElementById('exportJsonBtn');
 
@@ -14,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadHistory() {
         console.log("Loading History...");
+        historyTable.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 2rem;"><div class="spinner-small" style="margin: 0 auto; border-top-color: var(--primary);"></div><br>Loading records...</td></tr>';
+        
         try {
             const cropType = filterCrop.value;
             
@@ -64,16 +67,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const seenBatchIds = new Set();
             let merged = [];
 
-            [...offlineSyncRecords, ...onlineRecords, ...localHistory].forEach(record => {
-                if (record && record.batch_id && !seenBatchIds.has(record.batch_id)) {
-                    if (!cropType || record.crop_type === cropType) {
-                        merged.push(record);
-                        seenBatchIds.add(record.batch_id);
+            // Combine all sources
+            const allSources = [...offlineSyncRecords, ...onlineRecords, ...localHistory];
+            
+            allSources.forEach(record => {
+                if (record && record.batch_id) {
+                    if (!seenBatchIds.has(record.batch_id)) {
+                        if (!cropType || record.crop_type === cropType) {
+                            merged.push(record);
+                            seenBatchIds.add(record.batch_id);
+                        }
                     }
+                } else if (record) {
+                    // Fallback for records without batch_id (shouldn't happen but let's be safe)
+                    merged.push({ ...record, batch_id: record.batch_id || 'ID-MISSING' });
                 }
             });
 
-            merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            // Sort by date (handle invalid dates)
+            merged.sort((a, b) => {
+                const dateA = new Date(a.created_at || 0);
+                const dateB = new Date(b.created_at || 0);
+                return dateB - dateA;
+            });
 
             console.log("Total Merged Records:", merged.length);
             currentRecords = merged;
@@ -87,12 +103,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTable(records) {
         if (records.length === 0) {
-            historyTable.innerHTML = '<tr><td colspan="7" class="text-center">Walang records na nahanap.</td></tr>';
+            historyTable.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 3rem;">Walang records na nahanap.<br><small style="color: #888;">Subukang mag-save ng bagong grade sa Home page.</small></td></tr>';
             return;
         }
 
         historyTable.innerHTML = records.map(record => {
-            const date = new Date(record.created_at).toLocaleDateString('en-PH', {
+            const dateStr = record.created_at || new Date().toISOString();
+            const date = new Date(dateStr).toLocaleDateString('en-PH', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
@@ -109,18 +126,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusBadge = '<span class="tag-mini" style="background: #E1F5FE; color: #01579B;">Local</span>';
             }
 
+            const photo = record.photo_url || 'https://picsum.photos/seed/crop/100/100';
+
             return `
                 <tr>
                     <td>
-                        <div style="font-weight: bold;">${record.crop_type} ${statusBadge}</div>
+                        <div style="font-weight: bold;">${record.crop_type || 'Unknown'} ${statusBadge}</div>
                         <div style="font-size: 0.65rem; color: #888;">${record.batch_id || 'N/A'}</div>
                     </td>
-                    <td><img src="${record.photo_url}" class="thumb" alt="Crop" onerror="this.src='https://picsum.photos/seed/crop/100/100'"></td>
-                    <td><span class="badge-small ${gradeClass}">${record.grade}</span></td>
+                    <td><img src="${photo}" class="thumb" alt="Crop" onerror="this.src='https://picsum.photos/seed/crop/100/100'"></td>
+                    <td><span class="badge-small ${gradeClass}">${record.grade || '?'}</span></td>
                     <td>${date}</td>
                     <td>
                         <div style="font-size: 0.75rem;">
-                            ${[record.country, record.region, record.province, record.city, record.location_barangay].filter(Boolean).join(' > ')}
+                            ${[record.country, record.region, record.province, record.city, record.location_barangay].filter(Boolean).join(' > ') || 'No location'}
                         </div>
                     </td>
                     <td>
@@ -153,9 +172,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Filter ---
+    // --- Events ---
 
     filterCrop.addEventListener('change', loadHistory);
+    refreshBtn.addEventListener('click', loadHistory);
 
     // --- Export Data ---
 

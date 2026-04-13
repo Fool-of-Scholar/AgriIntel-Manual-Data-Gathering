@@ -28,6 +28,7 @@ body {
     color: var(--text-main);
     line-height: 1.6;
     padding-bottom: 4rem;
+    overflow-x: hidden;
 }
 
 .container {
@@ -94,12 +95,15 @@ header p {
     border-radius: 1rem;
     font-size: 0.8rem;
     font-weight: 800;
-    display: inline-flex;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.6rem;
     margin-bottom: 1.25rem;
     font-family: 'JetBrains Mono', monospace;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    max-width: 100%;
+    word-break: break-all;
 }
 
 h2 {
@@ -108,10 +112,12 @@ h2 {
     color: var(--primary);
     font-weight: 800;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem;
     border-left: 4px solid var(--primary);
     padding-left: 0.75rem;
+    word-break: break-word;
 }
 
 /* Form Elements */
@@ -177,6 +183,7 @@ label {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     word-break: break-word;
+    box-sizing: border-box;
 }
 
 .btn:active {
@@ -612,7 +619,7 @@ td {
     .table-container td {
         border: none;
         position: relative;
-        padding-left: 40%;
+        padding-left: 35%;
         text-align: right;
         padding-bottom: 0.75rem;
         padding-top: 0.75rem;
@@ -628,14 +635,14 @@ td {
     .table-container td:before {
         position: absolute;
         top: 0.75rem;
-        left: 1rem;
-        width: 35%;
-        padding-right: 10px;
+        left: 0.5rem;
+        width: 30%;
+        padding-right: 5px;
         white-space: normal;
         text-align: left;
         font-weight: 900;
         color: var(--primary-light);
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         text-transform: uppercase;
     }
     

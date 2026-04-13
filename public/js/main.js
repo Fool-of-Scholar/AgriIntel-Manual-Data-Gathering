@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentImageUrl = null;
     let currentAnalysis = null;
     let backgroundUploadPromise = null;
+    let uploadAbortController = null;
     let currentBatchId = '';
     let currentLocation = { lat: null, lng: null, address: 'Unknown Location', city: '', province: '', region: '', country: '' };
     let cropper = null;
@@ -161,25 +162,67 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- File Handling ---
 
     function startBackgroundUpload(file) {
+        // Cancel previous upload if any
+        if (uploadAbortController) {
+            uploadAbortController.abort();
+        }
+        uploadAbortController = new AbortController();
+
         currentImageUrl = null; // Reset
-        uploadStatus.textContent = "Uploading photo in background...";
+        uploadStatus.textContent = "Processing & compressing photo...";
         uploadStatus.classList.remove('hidden');
         uploadBox.classList.add('processing');
-        
-        backgroundUploadPromise = API.uploadPhoto(file)
-            .then(res => {
-                currentImageUrl = res.photo_url;
-                uploadStatus.textContent = "Photo uploaded successfully!";
-                setTimeout(() => uploadStatus.classList.add('hidden'), 2000);
-                uploadBox.classList.remove('processing');
-                return res.photo_url;
-            })
-            .catch(err => {
-                console.error("Background upload failed:", err);
-                uploadStatus.textContent = "Upload failed. Will save offline.";
-                uploadBox.classList.remove('processing');
-                return null;
-            });
+
+        // Compress image before upload
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const img = new Image();
+            img.onload = async () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                // Max 1200px
+                const MAX_SIZE = 1200;
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    }
+                } else {
+                    if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                canvas.toBlob(async (blob) => {
+                    uploadStatus.textContent = "Uploading to cloud...";
+                    backgroundUploadPromise = API.uploadPhoto(blob, uploadAbortController.signal)
+                        .then(res => {
+                            currentImageUrl = res.photo_url;
+                            uploadStatus.textContent = "Photo ready!";
+                            setTimeout(() => uploadStatus.classList.add('hidden'), 2000);
+                            uploadBox.classList.remove('processing');
+                            return res.photo_url;
+                        })
+                        .catch(err => {
+                            if (err.name === 'AbortError') return null;
+                            console.error("Background upload failed:", err);
+                            uploadStatus.textContent = "Upload failed. Using local copy.";
+                            uploadBox.classList.remove('processing');
+                            return null;
+                        });
+                }, 'image/jpeg', 0.7); // 70% quality
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
     }
 
     uploadBox.addEventListener('click', (e) => {
@@ -556,6 +599,8 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('agriintel_history', JSON.stringify(localHistory.slice(0, 50)));
 
             // Success
+            currentImageUrl = null;
+            backgroundUploadPromise = null;
             resultCard.classList.add('hidden');
             saveForm.classList.add('hidden');
             successMsg.classList.remove('hidden');

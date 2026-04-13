@@ -1,10 +1,11 @@
 const API = {
-    async uploadPhoto(file) {
+    async uploadPhoto(file, signal) {
         const formData = new FormData();
         formData.append('photo', file);
         const response = await fetch('/api/upload-photo', {
             method: 'POST',
-            body: formData
+            body: formData,
+            signal
         });
         if (!response.ok) {
             const error = await response.json();
